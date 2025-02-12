@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slot Machine</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: #333;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .slot-machine {
+      background: #444;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 350px;
+    }
+    .info {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .slot-container {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      gap: 10px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .slot {
+      width: 80px;
+      height: 80px;
+      background: #555;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slot-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .controls button, #spinButton {
+      font-size: 1em;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .controls button { background-color: #666; color: white; }
+    #spinButton { background-color: #e67e22; color: white; }
+    #message { font-size: 1em; margin-top: 10px; min-height: 1.5em; }
+    .transaction-log {
+      background: #222;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 15px;
+      text-align: left;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.9em;
+    }
+    .mini-game {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #444;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .mini-game .circle {
+      width: 50px;
+      height: 50px;
+      background: #555;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 10px;
+      cursor: pointer;
+      position: relative;
+    }
+    .mini-game .circle::after {
+      content: "?";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5em;
+      color: white;
+    }
+    #resetButton {
+      background-color: #e74c3c;
+      color: white;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="slot-machine">
+    <div class="info">Credits: <span id="balance">100</span></div>
+    
+    <div class="slot-container">
+      <div class="slot"><img src="br1.png" alt="1" class="slot-img"></div>
+      <div class="slot"><img src="br2.png" alt="2" class="slot-img"></div>
+      <div class="slot"><img src="br3.png" alt="3" class="slot-img"></div>
+      <div class="slot"><img src="br4.png" alt="4" class="slot-img"></div>
+      <div class="slot"><img src="br5.png" alt="5" class="slot-img"></div>
+      <div class="slot"><img src="br6.png" alt="6" class="slot-img"></div>
+      <div class="slot"><img src="br7.png" alt="7" class="slot-img"></div>
+      <div class="slot"><img src="br8.png" alt="8" class="slot-img"></div>
+      <div class="slot"><img src="majmun.png" alt="monkey" class="slot-img"></div> <!-- Monkey -->
+    </div>
+    
+    <div class="controls">
+      <button onclick="changeBet(-5)">-5</button>
+      <span id="betAmount">10</span>
+      <button onclick="changeBet(5)">+5</button>
+      <input type="number" id="betInput" placeholder="Enter bet" oninput="updateBetFromInput()" />
+    </div>
+    
+    <button onclick="spin()" id="spinButton">Spin</button>
+    <div id="message"></div>
+
+    <div class="transaction-log">
+      <strong>Transaction history:</strong>
+      <ul id="logList"></ul>
+    </div>
+
+    <!-- Reset button -->
+    <button id="resetButton" onclick="resetGame()">Reset Game</button>
+  </div>
+
+  <!-- Mini-game -->
+  <div class="mini-game" id="miniGame">
+    <p>Choose the correct circle!</p>
+    <div>
+      <div class="circle" onclick="checkWin(0)"></div>
+      <div class="circle" onclick="checkWin(1)"></div>
+    </div>
+  </div>
+
+  <script>
+    // Initialization
+    let balance = localStorage.getItem("balance") ? parseInt(localStorage.getItem("balance")) : 100;
+    let bet = localStorage.getItem("bet") ? parseInt(localStorage.getItem("bet")) : 10;
+    let winningCircle = 0;
+
+    // Refresh balance on the screen
+    updateBalance();
+
+    // Function to change bet
+    function changeBet(amount) {
+      if (bet + amount >= 5 && bet + amount <= balance) {
+        bet += amount;
+        document.getElementById("betAmount").textContent = bet;
+        document.getElementById("betInput").value = bet;
+        localStorage.setItem("bet", bet);
+      }
+    }
+
+    // Function to update bet from input
+    function updateBetFromInput() {
+      let inputBet = parseInt(document.getElementById("betInput").value);
+      if (inputBet >= 5 && inputBet <= balance) {
+        bet = inputBet;
+        document.getElementById("betAmount").textContent = bet;
+        localStorage.setItem("bet", bet);
+      } else {
+        document.getElementById("betInput").value = bet;
+      }
+    }
+
+    // Function to spin the slot machine
+    function spin() {
+      setMessage("");
+      if (balance < bet) {
+        setMessage("Not enough credits!");
+        return;
+      }
+
+      balance -= bet;
+      updateBalance();
+      addTransaction("Bet: -" + bet + " credits");
+
+      const slots = document.querySelectorAll(".slot-img");
+      let monkeyCount = 0;
+
+      // Simulate spin with 50/50 chance
+      let winOrLose = Math.random() < 0.5;
+      if (winOrLose) {
+        setMessage("You won!");
+        balance += bet * 2;
+        addTransaction("You won " + bet * 2 + " credits!");
+      } else {
+        setMessage("You lost!");
+      }
+
+      // Show the result on the slot machine
+      let spinningInterval = setInterval(() => {
+        slots.forEach(slot => {
+          let randomNum = Math.floor(Math.random() * 9) + 1;
+          if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
+          slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
+        });
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(spinningInterval);
+        slots.forEach(slot => {
+          let randomNum = Math.floor(Math.random() * 9) + 1;
+          if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
+          slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
+          if (randomNum === 10) monkeyCount++;
+        });
+
+        // If player gets 3 or more monkeys, open the bonus game
+        if (monkeyCount >= 3) {
+          openMiniGame();
+        }
+
+        updateBalance();
+      }, 2000); // Spin lasts 2 seconds
+    }
+
+    // Function to open the bonus game
+    function openMiniGame() {
+      winningCircle = Math.floor(Math.random() * 2); // Only two circles
+      document.getElementById("miniGame").style.display = "block";
+      setMessage("You won! Bonus for monkeys.");
+    }
+
+    // Function to check if the player won
+    function checkWin(index) {
+      document.getElementById("miniGame").style.display = "none";
+      if (index === winningCircle) {
+        let winnings = bet * 6;
+        balance += winnings;
+        setMessage("Hit! You won " + winnings + " credits!");
+        addTransaction("Mini-game: +" + winnings + " credits");
+      } else {
+        // Second chance if bet is more than 45 credits
+        if (bet > 45) {
+          setMessage("You missed! You have another chance!");
+          setTimeout(() => {
+            openMiniGame(); // Second chance for the game
+          }, 1000);
+        } else {
+          setMessage("You missed!");
+        }
+      }
+      updateBalance();
+    }
+
+    // Function to update balance
+    function updateBalance() {
+      document.getElementById("balance").textContent = balance;
+      localStorage.setItem("balance", balance); // Save the balance in local storage
+    }
+
+    // Function to add transaction
+    function addTransaction(text) {
+      let logList = document.getElementById("logList");
+      let li = document.createElement("li");
+      li.textContent = text;
+      logList.prepend(li);
+    }
+
+    // Function to set messages
+    function setMessage(msg) {
+      document.getElementById("message").textContent = msg;
+    }
+
+    // Function to reset the game
+    function resetGame() {
+      if (confirm("Are you sure you want to reset the game?")) {
+        localStorage.removeItem("balance");
+        localStorage.removeItem("bet");
+        location.reload(); // Reload the page after resetting
+      }
+    }
+  </script>
+</body>
+</html>
