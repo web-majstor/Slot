@@ -117,11 +117,59 @@
       color: white;
       margin-top: 20px;
     }
+
+    /* Exchanger styles */
+    .exchanger {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      border: 2px solid #e67e22;
+      display: none; /* Exchanger je sada skriven pri učitavanju stranice */
+    }
+
+    .exchanger input {
+      margin: 10px 0;
+    }
+
+    #exchangerButton {
+      background-color: #9b59b6;
+      color: white;
+      margin-top: 10px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Header */
+    .header-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.1em;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="slot-machine">
-    <div class="info">Credits: <span id="balance">100</span></div>
+    <!-- Header info -->
+    <div class="header-info">
+      <div>
+        Credits: <span id="balance">100</span>
+      </div>
+      <div>
+        Elixirs: <span id="elixirs">0</span>
+      </div>
+    </div>
+
+   
     
     <div class="slot-container">
       <div class="slot"><img src="br1.png" alt="1" class="slot-img"></div>
@@ -148,7 +196,19 @@
     <div class="transaction-log">
       <strong>Transaction history:</strong>
       <ul id="logList"></ul>
+    </div> 
+
+    <!-- Exchanger -->
+    <div class="exchanger" id="exchanger">
+      <h2>Exchanger</h2>
+      <p>1 Elixir = 1000 Credits</p>
+      <input type="number" id="exchangerInput" placeholder="Enter amount" />
+      <button onclick="exchangeCredits()">Exchange</button>
+      <button onclick="closeExchanger()">Close</button>
     </div>
+
+    <!-- Button to open exchanger -->
+    <button id="exchangerButton" onclick="openExchanger()">💱 Open Exchanger</button>
 
     <!-- Reset button -->
     <button id="resetButton" onclick="resetGame()">Reset Game</button>
@@ -164,144 +224,181 @@
   </div>
 
   <script>
-    // Initialization
-    let balance = localStorage.getItem("balance") ? parseInt(localStorage.getItem("balance")) : 100;
-    let bet = localStorage.getItem("bet") ? parseInt(localStorage.getItem("bet")) : 10;
-    let winningCircle = 0;
+// Initialization
+let balance = localStorage.getItem("balance") ? parseInt(localStorage.getItem("balance")) : 100;
+let elixirs = localStorage.getItem("elixirs") ? parseInt(localStorage.getItem("elixirs")) : 0;
+let bet = localStorage.getItem("bet") ? parseInt(localStorage.getItem("bet")) : 10;
+let winningCircle = 0;
+let spinning = false; // Dodato: Flag koji sprečava višestruke spinove
 
-    // Refresh balance on the screen
+// Refresh balance on the screen
+updateBalance();
+
+// Function to change bet
+function changeBet(amount) {
+  if (!spinning && bet + amount >= 5 && bet + amount <= balance) {
+    bet += amount;
+    document.getElementById("betAmount").textContent = bet;
+    document.getElementById("betInput").value = bet;
+    localStorage.setItem("bet", bet);
+  }
+}
+
+// Function to update bet from input
+function updateBetFromInput() {
+  let inputBet = parseInt(document.getElementById("betInput").value);
+  if (!spinning && inputBet >= 5 && inputBet <= balance) {
+    bet = inputBet;
+    document.getElementById("betAmount").textContent = bet;
+    localStorage.setItem("bet", bet);
+  } else {
+    document.getElementById("betInput").value = bet;
+  }
+}
+
+// Function to spin the slot machine
+function spin() {
+  if (spinning) return; // Ako je već u toku spin, ne dozvoljavamo novi
+  setMessage("");
+  
+  if (balance < bet) {
+    setMessage("Not enough credits!");
+    return;
+  }
+
+  spinning = true; // Postavljamo da je spin u toku
+  document.getElementById("spinButton").disabled = true; // Onemogućavamo dugme dok traje spin
+
+  balance -= bet;
+  updateBalance();
+  addTransaction("Bet: -" + bet + " credits");
+
+  const slots = document.querySelectorAll(".slot-img");
+  let monkeyCount = 0;
+
+  // Simulate spin animation
+  let spinningInterval = setInterval(() => {
+    slots.forEach(slot => {
+      let randomNum = Math.floor(Math.random() * 9) + 1;
+      if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
+      slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
+    });
+  }, 100);
+
+  // Stop spinning after 1.5 seconds (1500ms)
+  setTimeout(() => {
+    clearInterval(spinningInterval);
+    slots.forEach(slot => {
+      let randomNum = Math.floor(Math.random() * 9) + 1;
+      if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
+      slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
+      if (randomNum === 10) monkeyCount++;
+    });
+
+    // Determine win or lose
+    if (Math.random() < 0.5) {
+      setMessage("You won!");
+      balance += bet * 2;
+      addTransaction("You won " + bet * 2 + " credits!");
+    } else {
+      setMessage("You lost!");
+    }
+
+    // If player gets 3 or more monkeys, open the bonus game
+    if (monkeyCount >= 3) {
+      openMiniGame();
+    }
+
     updateBalance();
+    spinning = false; // Obeležavamo da je spin gotov
+    document.getElementById("spinButton").disabled = false; // Ponovo omogućavamo dugme
+  }, 1500); // Spin traje 1.5 sekundu
+}
 
-    // Function to change bet
-    function changeBet(amount) {
-      if (bet + amount >= 5 && bet + amount <= balance) {
-        bet += amount;
-        document.getElementById("betAmount").textContent = bet;
-        document.getElementById("betInput").value = bet;
-        localStorage.setItem("bet", bet);
-      }
-    }
+// Function to open the bonus game
+function openMiniGame() {
+  winningCircle = Math.floor(Math.random() * 2); // Only two circles
+  document.getElementById("miniGame").style.display = "block";
+  setMessage("You won! Bonus for monkeys.");
+}
 
-    // Function to update bet from input
-    function updateBetFromInput() {
-      let inputBet = parseInt(document.getElementById("betInput").value);
-      if (inputBet >= 5 && inputBet <= balance) {
-        bet = inputBet;
-        document.getElementById("betAmount").textContent = bet;
-        localStorage.setItem("bet", bet);
-      } else {
-        document.getElementById("betInput").value = bet;
-      }
-    }
-
-    // Function to spin the slot machine
-    function spin() {
-      setMessage("");
-      if (balance < bet) {
-        setMessage("Not enough credits!");
-        return;
-      }
-
-      balance -= bet;
-      updateBalance();
-      addTransaction("Bet: -" + bet + " credits");
-
-      const slots = document.querySelectorAll(".slot-img");
-      let monkeyCount = 0;
-
-      // Simulate spin with 50/50 chance
-      let winOrLose = Math.random() < 0.5;
-      if (winOrLose) {
-        setMessage("You won!");
-        balance += bet * 2;
-        addTransaction("You won " + bet * 2 + " credits!");
-      } else {
-        setMessage("You lost!");
-      }
-
-      // Show the result on the slot machine
-      let spinningInterval = setInterval(() => {
-        slots.forEach(slot => {
-          let randomNum = Math.floor(Math.random() * 9) + 1;
-          if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
-          slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
-        });
-      }, 100);
-
+// Function to check if the player won
+function checkWin(index) {
+  document.getElementById("miniGame").style.display = "none";
+  if (index === winningCircle) {
+    let winnings = bet * 6;
+    balance += winnings;
+    setMessage("Hit! You won " + winnings + " credits!");
+    addTransaction("Mini-game: +" + winnings + " credits");
+  } else {
+    // Second chance if bet is more than 45 credits
+    if (bet > 45) {
+      setMessage("You missed! You have another chance!");
       setTimeout(() => {
-        clearInterval(spinningInterval);
-        slots.forEach(slot => {
-          let randomNum = Math.floor(Math.random() * 9) + 1;
-          if (Math.random() < 0.3) randomNum = 10; // Increased chance for monkeys to 30%
-          slot.src = randomNum === 10 ? "majmun.png" : "br" + randomNum + ".png";
-          if (randomNum === 10) monkeyCount++;
-        });
-
-        // If player gets 3 or more monkeys, open the bonus game
-        if (monkeyCount >= 3) {
-          openMiniGame();
-        }
-
-        updateBalance();
-      }, 2000); // Spin lasts 2 seconds
+        openMiniGame(); // Second chance for the game
+      }, 1000);
+    } else {
+      setMessage("You missed!");
     }
+  }
+  updateBalance();
+}
 
-    // Function to open the bonus game
-    function openMiniGame() {
-      winningCircle = Math.floor(Math.random() * 2); // Only two circles
-      document.getElementById("miniGame").style.display = "block";
-      setMessage("You won! Bonus for monkeys.");
-    }
+// Function to update balance and elixirs
+function updateBalance() {
+  document.getElementById("balance").textContent = balance;
+  document.getElementById("elixirs").textContent = elixirs;
+  localStorage.setItem("balance", balance); // Save the balance in local storage
+  localStorage.setItem("elixirs", elixirs); // Save the elixirs in local storage
+}
 
-    // Function to check if the player won
-    function checkWin(index) {
-      document.getElementById("miniGame").style.display = "none";
-      if (index === winningCircle) {
-        let winnings = bet * 6;
-        balance += winnings;
-        setMessage("Hit! You won " + winnings + " credits!");
-        addTransaction("Mini-game: +" + winnings + " credits");
-      } else {
-        // Second chance if bet is more than 45 credits
-        if (bet > 45) {
-          setMessage("You missed! You have another chance!");
-          setTimeout(() => {
-            openMiniGame(); // Second chance for the game
-          }, 1000);
-        } else {
-          setMessage("You missed!");
-        }
-      }
-      updateBalance();
-    }
+// Function to add transaction
+function addTransaction(text) {
+  let logList = document.getElementById("logList");
+  let li = document.createElement("li");
+  li.textContent = text;
+  logList.prepend(li);
+}
 
-    // Function to update balance
-    function updateBalance() {
-      document.getElementById("balance").textContent = balance;
-      localStorage.setItem("balance", balance); // Save the balance in local storage
-    }
+// Function to set messages
+function setMessage(msg) {
+  document.getElementById("message").textContent = msg;
+}
 
-    // Function to add transaction
-    function addTransaction(text) {
-      let logList = document.getElementById("logList");
-      let li = document.createElement("li");
-      li.textContent = text;
-      logList.prepend(li);
-    }
+// Function to reset the game
+function resetGame() {
+  if (confirm("Are you sure you want to reset the game?")) {
+    localStorage.removeItem("balance");
+    localStorage.removeItem("bet");
+    localStorage.removeItem("elixirs");
+    location.reload(); // Reload the page after resetting
+  }
+}
 
-    // Function to set messages
-    function setMessage(msg) {
-      document.getElementById("message").textContent = msg;
-    }
+// Otvaranje Exchanger-a
+function openExchanger() {
+  document.getElementById("exchanger").style.display = "block";
+}
 
-    // Function to reset the game
-    function resetGame() {
-      if (confirm("Are you sure you want to reset the game?")) {
-        localStorage.removeItem("balance");
-        localStorage.removeItem("bet");
-        location.reload(); // Reload the page after resetting
-      }
-    }
+// Zatvaranje Exchanger-a
+function closeExchanger() {
+  document.getElementById("exchanger").style.display = "none";
+}
+
+// Funkcija za razmenu kredita
+function exchangeCredits() {
+  let amount = parseInt(document.getElementById("exchangerInput").value);
+  if (amount <= balance && amount > 0) {
+    balance -= amount;
+    elixirs += Math.floor(amount / 1000); // 1000 kredita za 1 eliksir
+    setMessage("You exchanged " + amount + " credits for " + Math.floor(amount / 1000) + " elixirs!");
+    updateBalance();
+    addTransaction("Exchanged: -" + amount + " credits for elixirs");
+    closeExchanger();
+  } else {
+    setMessage("Not enough credits or invalid amount.");
+  }
+}
   </script>
 </body>
 </html>
