@@ -26,6 +26,8 @@
     .info {
       font-size: 1.2em;
       margin-bottom: 10px;
+      background-color: grey;
+      border-radius: 15px;
     }
     .slot-container {
       display: grid;
@@ -76,18 +78,21 @@
       overflow-y: auto;
       font-size: 0.9em;
     }
-    .mini-game {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      border: 3px solid black;
-      transform: translate(-50%, -50%);
-      background: #444;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-    }
+ .mini-game {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.1); /* Poluprovidna bela */
+    backdrop-filter: blur(12px); /* Blur efekat */
+    -webkit-backdrop-filter: blur(12px); /* Safari podrška */
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); /* Dodaje malo dubine */
+    border: 2px solid rgba(255, 255, 255, 0.2); /* Lagani okvir */
+}
     .mini-game .circle {
       width: 50px;
       height: 50px;
