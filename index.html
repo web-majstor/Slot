@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Slot Machine</title>
+  <title>Monkey Slots</title>
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -16,12 +16,120 @@
       justify-content: center;
       min-height: 100vh;
     }
+
+    /* Stil za pozadinsku tamnu masku */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Glavni modalni prozor */
+    .modal {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      width: 320px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      transform: scale(0.8);
+      transition: transform 0.3s ease;
+    }
+
+    /* Dugme za zatvaranje */
+    .close-btn {
+      background: red;
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    /* Dugme za otvaranje */
+    .open-btn {
+      background: #e67e22;
+      border: 1px solid white;
+      color: white;
+      height: 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Animacija otvaranja */
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
     .slot-machine {
       background: linear-gradient(#1a1a1a,#424242,#6e6e6e,#969696);
       padding: 20px;
       border-radius: 10px;
       text-align: center;
       width: 350px;
+    }
+     .start-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      z-index: 1000;
+    }
+
+    .start-screen h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+
+    .start-screen button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      border: none;
+      background: #e67e22;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Loading Screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      display: none;
+      z-index: 999;
     }
     .info {
       font-size: 1.2em;
@@ -116,6 +224,9 @@
       background-color: #e74c3c;
       color: white;
       margin-top: 20px;
+      height: 34px;
+      width: 100px;
+      border-radius: 10px;
     }
 
     /* Exchanger styles */
@@ -158,6 +269,17 @@
   </style>
 </head>
 <body>
+
+    <!-- Start Screen -->
+  <div class="start-screen" id="startScreen">
+    <h1>Welcome to Monkey Slots</h1>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">Loading...</div>
+
+
   <div class="slot-machine">
     <!-- Header info -->
     <div class="header-info">
@@ -169,7 +291,7 @@
       </div>
     </div>
 
-   
+
     
     <div class="slot-container">
       <div class="slot"><img src="br1.png" alt="1" class="slot-img"></div>
@@ -198,6 +320,34 @@
       <ul id="logList"></ul>
     </div> 
 
+
+<!-- Dugme za otvaranje modala -->
+  <button class="open-btn" onclick="openModal()">Tournaments</button>
+
+  <!-- Modalni prozor -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2>Tournaments</h2>
+      <p>Tournament Rules & Registration Instructions<br>
+	1.	Tournament Overview<br>
+	•	Compete in the Monkey Slots Tournament and win a prize!<br>
+	•	Prizes:
+	•	€5 for the player with the most elixirs<br>
+	•	€5 for the player with the highest credits<br>
+	2.	How to Participate?<br>
+	•	Play the game and collect as many elixirs and credits as possible.<br>
+	•	Take a screenshot of your final elixirs and credits balance.<br>
+	•	Send the screenshot to slotmachine@gmail.com with the subject “Monkey Slots Tournament”.<br>
+	•	The player with the highest elixirs and the player with the highest credits will each win €5.<br>
+	3.	Deadline & Winner Announcement<br>
+	•	The tournament ends on [Set the deadline].<br>
+	•	Winners will be announced on [Set the announcement date] via email.<br>
+
+🚀 Good luck and may the best player win!</p>
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
     <!-- Exchanger -->
     <div class="exchanger" id="exchanger">
       <h2>Exchanger</h2>
@@ -214,6 +364,7 @@
     <button id="resetButton" onclick="resetGame()">Reset Game</button>
   </div>
 
+
   <!-- Mini-game -->
   <div class="mini-game" id="miniGame">
     <p>Choose the correct circle!</p>
@@ -223,7 +374,29 @@
     </div>
   </div>
 
+
+
   <script>
+
+function openModal() {
+      document.getElementById("modalOverlay").classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("modalOverlay").classList.remove("active");
+    }
+
+function startGame() {
+      document.getElementById("startScreen").style.display = "none"; // Sakrij start screen
+      document.getElementById("loadingScreen").style.display = "flex"; // Prikaži loading
+
+      setTimeout(() => {
+        document.getElementById("loadingScreen").style.display = "none"; // Sakrij loading
+        document.getElementById("slotMachine").style.display = "block"; // Prikaži igru
+      }, 2000); // Simulacija učitavanja (2 sekunde)
+    }
+
+
 // Initialization
 let balance = localStorage.getItem("balance") ? parseInt(localStorage.getItem("balance")) : 100;
 let elixirs = localStorage.getItem("elixirs") ? parseInt(localStorage.getItem("elixirs")) : 0;
